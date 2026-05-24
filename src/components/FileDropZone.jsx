@@ -62,6 +62,7 @@ const FileDropZone = forwardRef(function FileDropZone({ onBooksAdded, onError, o
     if (!epubFiles.length) return
 
     onLoadingChange?.(true)
+    await new Promise(r => requestAnimationFrame(r))
     const settled = await Promise.allSettled(epubFiles.map(parseEpub))
     onLoadingChange?.(false)
     const results = settled.filter(r => r.status === 'fulfilled').map(r => r.value)
