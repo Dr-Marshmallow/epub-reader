@@ -12,12 +12,18 @@ async function parseEpub(file) {
         let coverUrl = null
 
         try {
-          const meta = await book.loaded.metadata
+          const meta = await Promise.race([
+            book.loaded.metadata,
+            new Promise(r => setTimeout(r, 5000)),
+          ])
           if (meta?.title) title = meta.title
         } catch (_) {}
 
         try {
-          coverUrl = await book.coverUrl()
+          coverUrl = await Promise.race([
+            book.coverUrl(),
+            new Promise(r => setTimeout(r, 5000)),
+          ])
         } catch (_) {}
 
         // book.opened resolves after replacements() completes — race with a timeout
