@@ -12,6 +12,7 @@ Apri uno o più EPUB nel browser, sfogliali come su un e-reader, e se la visuali
 - **Griglia libreria** — copertine estratte automaticamente dal file EPUB
 - **Reader stile Kindle** — sfondo carta, font serif, paginazione
 - **Navigazione** — frecce, click sulle zone laterali, dropdown capitoli (TOC)
+- **Layout a due pagine** — pulsante in topbar per affiancare due pagine come su un libro fisico
 - **Rilevamento corruzione** — se epub.js non riesce ad aprire il file, viene mostrato un banner di errore
 - **Zero persistenza** — nessun localStorage, nessun file scritto; ricaricare la pagina azzera tutto
 
@@ -25,7 +26,7 @@ Apri uno o più EPUB nel browser, sfogliali come su un e-reader, e se la visuali
 docker compose up --build
 ```
 
-L'app sarà disponibile su [http://localhost:8080](http://localhost:8080).
+L'app sarà disponibile su [http://localhost:3002](http://localhost:3002).
 
 Per fermarla:
 
