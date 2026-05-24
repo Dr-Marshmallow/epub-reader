@@ -6,6 +6,7 @@ import '../styles/home.css'
 export default function HomeScreen({ books, onBooksAdded, onOpen }) {
   const dropZoneRef = useRef(null)
   const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   function handleBooksAdded(newBooks) {
     setError(null)
@@ -22,7 +23,10 @@ export default function HomeScreen({ books, onBooksAdded, onOpen }) {
         ref={dropZoneRef}
         onBooksAdded={handleBooksAdded}
         onError={handleError}
+        onLoadingChange={setLoading}
       />
+
+      {loading && <div className="loading-bar" />}
 
       <header className="home-header">
         <h1>Kindle Check</h1>

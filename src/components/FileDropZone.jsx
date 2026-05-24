@@ -47,7 +47,7 @@ async function parseEpub(file) {
   })
 }
 
-const FileDropZone = forwardRef(function FileDropZone({ onBooksAdded, onError }, ref) {
+const FileDropZone = forwardRef(function FileDropZone({ onBooksAdded, onError, onLoadingChange }, ref) {
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
 
@@ -61,7 +61,9 @@ const FileDropZone = forwardRef(function FileDropZone({ onBooksAdded, onError },
     )
     if (!epubFiles.length) return
 
+    onLoadingChange?.(true)
     const settled = await Promise.allSettled(epubFiles.map(parseEpub))
+    onLoadingChange?.(false)
     const results = settled.filter(r => r.status === 'fulfilled').map(r => r.value)
     const errors = settled.filter(r => r.status === 'rejected').map(r => r.reason.message)
     if (results.length) onBooksAdded(results)
