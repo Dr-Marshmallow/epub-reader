@@ -20,9 +20,9 @@ async function parseEpub(file) {
           coverUrl = await book.coverUrl()
         } catch (_) {}
 
-        // book.opened resolves after replacements() completes; without this,
-        // resources.replaceCss() throws after destroy() nullifies resources
-        await book.opened.catch(() => {})
+        // book.opened resolves after replacements() completes — race with a timeout
+        // so malformed EPUBs don't stall the whole batch
+        await Promise.race([book.opened.catch(() => {}), new Promise(r => setTimeout(r, 8000))])
         book.destroy()
 
         resolve({
@@ -55,15 +55,9 @@ const FileDropZone = forwardRef(function FileDropZone({ onBooksAdded, onError },
     )
     if (!epubFiles.length) return
 
-    const results = []
-    const errors = []
-    for (const file of epubFiles) {
-      try {
-        results.push(await parseEpub(file))
-      } catch (err) {
-        errors.push(err.message)
-      }
-    }
+    const settled = await Promise.allSettled(epubFiles.map(parseEpub))
+    const results = settled.filter(r => r.status === 'fulfilled').map(r => r.value)
+    const errors = settled.filter(r => r.status === 'rejected').map(r => r.reason.message)
     if (results.length) onBooksAdded(results)
     if (errors.length) onError(errors.join('\n'))
   }
