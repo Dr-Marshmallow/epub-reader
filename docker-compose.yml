@@ -2,5 +2,5 @@ services:
   epub-reader:
     build: .
     ports:
-      - "8080:80"
+      - "3002:80"
     restart: unless-stopped
