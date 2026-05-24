@@ -5,7 +5,6 @@ import '../styles/reader.css'
 export default function ReaderScreen({ book, onBack }) {
   const viewerRef = useRef(null)
   const renditionRef = useRef(null)
-  const bookRef = useRef(null)
 
   const [toc, setToc] = useState([])
   const [progress, setProgress] = useState(0)
@@ -13,48 +12,63 @@ export default function ReaderScreen({ book, onBack }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!viewerRef.current) return
+    const el = viewerRef.current
+    if (!el) return
+
+    // epub.js requires integer pixel dimensions — '100%' becomes '100%px' internally
+    // which is invalid. Measure the container before renderTo.
+    const { width, height } = el.getBoundingClientRect()
 
     let epubBook
     try {
       epubBook = ePub(book.arrayBuffer)
-      bookRef.current = epubBook
     } catch (err) {
       setError(`Impossibile aprire il file: ${err.message}`)
       setLoading(false)
       return
     }
 
-    const rendition = epubBook.renderTo(viewerRef.current, {
-      width: '100%',
-      height: '100%',
+    const rendition = epubBook.renderTo(el, {
+      width: Math.floor(width) || 800,
+      height: Math.floor(height) || 600,
       spread: 'none',
+      minSpreadWidth: 9999, // prevent epub.js from ever switching to two-page layout
       flow: 'paginated',
     })
     renditionRef.current = rendition
 
-    // Inject styles after each page renders to avoid replaceCss race condition
+    // Inject styles per-page via hooks to avoid replaceCss race condition
     rendition.hooks.content.register((contents) => {
       try {
-        const doc = contents.document
-        const style = doc.createElement('style')
+        const style = contents.document.createElement('style')
         style.textContent = `
           body { background: #f5f0e8 !important; color: #1a1210 !important;
             font-family: Georgia, "Times New Roman", serif !important;
             font-size: 1.05em !important; line-height: 1.7 !important; }
           p { margin-bottom: 0.8em !important; text-indent: 1.5em !important; }
         `
-        doc.head.appendChild(style)
+        contents.document.head.appendChild(style)
       } catch (_) {}
     })
 
+    // percentage only works after locations are generated; update once ready
     rendition.on('relocated', (location) => {
-      const pct = Math.round((location.start.percentage || 0) * 100)
-      setProgress(pct)
+      if (location?.start?.percentage != null) {
+        setProgress(Math.round(location.start.percentage * 100))
+      }
     })
 
     rendition.display()
-      .then(() => setLoading(false))
+      .then(() => {
+        setLoading(false)
+        // generate CFI locations in background; refresh percentage once done
+        epubBook.locations.generate(1024).then(() => {
+          const loc = rendition.currentLocation()
+          if (loc?.start?.percentage != null) {
+            setProgress(Math.round(loc.start.percentage * 100))
+          }
+        }).catch(() => {})
+      })
       .catch(err => {
         setError(`Errore durante la lettura: ${err.message}`)
         setLoading(false)
@@ -64,7 +78,15 @@ export default function ReaderScreen({ book, onBack }) {
       .then(nav => { if (nav?.toc) setToc(nav.toc) })
       .catch(() => {})
 
+    // keep rendition sized to the container on window resize
+    function handleResize() {
+      const { width, height } = el.getBoundingClientRect()
+      renditionRef.current?.resize(Math.floor(width), Math.floor(height))
+    }
+    window.addEventListener('resize', handleResize)
+
     return () => {
+      window.removeEventListener('resize', handleResize)
       rendition.destroy()
       epubBook.destroy()
     }
@@ -99,7 +121,12 @@ export default function ReaderScreen({ book, onBack }) {
       </div>
 
       <div className="reader-body">
-        {error ? (
+        {/* viewer is the sole flex item so epub.js always measures the full width */}
+        <div ref={viewerRef} className="epub-viewer" />
+
+        {/* overlays — position: absolute so they don't affect viewer's flex dimensions */}
+        {loading && !error && <div className="reader-loading">Caricamento...</div>}
+        {error && (
           <div className="reader-error">
             <span className="error-icon">⚠️</span>
             <p>{error}</p>
@@ -107,18 +134,12 @@ export default function ReaderScreen({ book, onBack }) {
               Il file potrebbe essere corrotto o in un formato non supportato.
             </p>
           </div>
-        ) : (
+        )}
+
+        {!error && (
           <>
-            {loading && <div className="reader-loading">Caricamento...</div>}
-            <div
-              className="click-zone prev"
-              onClick={() => renditionRef.current?.prev()}
-            />
-            <div ref={viewerRef} className="epub-viewer" style={{ visibility: loading ? 'hidden' : 'visible' }} />
-            <div
-              className="click-zone next"
-              onClick={() => renditionRef.current?.next()}
-            />
+            <div className="click-zone prev" onClick={() => renditionRef.current?.prev()} />
+            <div className="click-zone next" onClick={() => renditionRef.current?.next()} />
           </>
         )}
       </div>
