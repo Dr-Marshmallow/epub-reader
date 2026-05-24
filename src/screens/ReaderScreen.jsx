@@ -10,6 +10,7 @@ export default function ReaderScreen({ book, onBack }) {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isTwoPage, setIsTwoPage] = useState(false)
 
   useEffect(() => {
     const el = viewerRef.current
@@ -32,7 +33,7 @@ export default function ReaderScreen({ book, onBack }) {
       width: Math.floor(width) || 800,
       height: Math.floor(height) || 600,
       spread: 'none',
-      minSpreadWidth: 9999, // prevent epub.js from ever switching to two-page layout
+      minSpreadWidth: 9999,
       flow: 'paginated',
     })
     renditionRef.current = rendition
@@ -105,6 +106,17 @@ export default function ReaderScreen({ book, onBack }) {
     if (e.target.value) renditionRef.current?.display(e.target.value)
   }
 
+  function toggleSpread() {
+    const next = !isTwoPage
+    setIsTwoPage(next)
+    if (next) {
+      // minSpreadWidth: 1 ensures two pages are shown at any container width
+      renditionRef.current?.spread('auto', 1)
+    } else {
+      renditionRef.current?.spread('none')
+    }
+  }
+
   return (
     <div className="reader">
       <div className="reader-topbar">
@@ -118,6 +130,13 @@ export default function ReaderScreen({ book, onBack }) {
             ))}
           </select>
         )}
+        <button
+          className={`btn-spread${isTwoPage ? ' active' : ''}`}
+          onClick={toggleSpread}
+          title={isTwoPage ? 'Passa a pagina singola' : 'Passa a due pagine affiancate'}
+        >
+          <SpreadIcon twoPage={isTwoPage} />
+        </button>
       </div>
 
       <div className="reader-body">
@@ -154,5 +173,23 @@ export default function ReaderScreen({ book, onBack }) {
         </div>
       )}
     </div>
+  )
+}
+
+function SpreadIcon({ twoPage }) {
+  return (
+    <svg width="20" height="14" viewBox="0 0 20 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {twoPage ? (
+        // two pages: left + right rectangle
+        <>
+          <rect x="0.5" y="0.5" width="8" height="13" rx="1" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+          <rect x="11.5" y="0.5" width="8" height="13" rx="1" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+          <line x1="10" y1="0" x2="10" y2="14" stroke="currentColor" strokeWidth="0.8" strokeDasharray="2 1.5"/>
+        </>
+      ) : (
+        // single page: one centered rectangle
+        <rect x="4.5" y="0.5" width="11" height="13" rx="1" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+      )}
+    </svg>
   )
 }

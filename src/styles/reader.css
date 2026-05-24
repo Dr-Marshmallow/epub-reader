@@ -57,6 +57,31 @@
   outline: 1px solid var(--accent);
 }
 
+.btn-spread {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 36px;
+  height: 30px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-spread:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-spread.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(200, 169, 110, 0.08);
+}
+
 .reader-body {
   flex: 1;
   display: flex;
